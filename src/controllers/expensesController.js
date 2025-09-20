@@ -79,10 +79,8 @@ async function createExpenses(req, res) {
 
   const date = new Date(spentAt);
 
-  if (isNaN(date)) {
-    res.sendStatus(400);
-
-    return;
+  if (!Number.isFinite(date.getTime())) {
+    return res.sendStatus(400);
   }
 
   const newExpense = {
@@ -100,6 +98,13 @@ async function createExpenses(req, res) {
 
 async function getExpensesById(req, res) {
   const { id } = req.params;
+
+  const numericId = Number(id);
+
+  if (isNaN(numericId)) {
+    return res.sendStatus(400);
+  }
+
   const expense = await Expense.findByPk(id);
 
   if (!expense) {
@@ -113,6 +118,13 @@ async function getExpensesById(req, res) {
 
 async function deleteExpenses(req, res) {
   const { id } = req.params;
+
+  const numericId = Number(id);
+
+  if (isNaN(numericId)) {
+    return res.sendStatus(400);
+  }
+
   const expense = await Expense.destroy({ where: { id } });
 
   if (expense === 0) {
@@ -128,6 +140,12 @@ async function updateExpenses(req, res) {
   const { id } = req.params;
   const { spentAt, title, amount, category, note } = req.body;
 
+  const numericId = Number(id);
+
+  if (isNaN(numericId)) {
+    return res.sendStatus(400);
+  }
+
   const updateData = {};
 
   if (spentAt !== undefined) {
@@ -140,6 +158,10 @@ async function updateExpenses(req, res) {
   }
 
   if (title !== undefined) {
+    if (typeof title !== 'string') {
+      return res.sendStatus(400);
+    }
+
     updateData.title = title.trim();
   }
 
