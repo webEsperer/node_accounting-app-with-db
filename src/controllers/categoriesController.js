@@ -9,7 +9,9 @@ const getAllCategories = async (req, res) => {
 async function getCategoryById(req, res) {
   const { id } = req.params;
 
-  if (isNaN(+id)) {
+  const numericId = Number(id);
+
+  if (isNaN(numericId)) {
     return res.sendStatus(400);
   }
 
@@ -25,7 +27,7 @@ async function getCategoryById(req, res) {
 async function createCategory(req, res) {
   const { name } = req.body;
 
-  if (!name) {
+  if (!name || !name.trim()) {
     return res.sendStatus(400);
   }
 
@@ -36,6 +38,13 @@ async function createCategory(req, res) {
 
 async function deleteCategory(req, res) {
   const { id } = req.params;
+
+  const numericId = Number(id);
+
+  if (isNaN(numericId)) {
+    return res.sendStatus(400);
+  }
+
   const result = await Category.findByPk(id);
 
   if (!result) {
@@ -55,19 +64,28 @@ async function updateCategory(req, res) {
   const { id } = req.params;
   const { name } = req.body;
 
-  if (typeof name !== 'string') {
-    return res.sendStatus(422);
+  const numericId = Number(id);
+
+  if (isNaN(numericId)) {
+    return res.sendStatus(400);
   }
 
-  const [updatedCount] = await Category.update({ name }, { where: { id } });
+  if (!name || !name.trim()) {
+    return res.sendStatus(400);
+  }
+
+  const [updatedCount, updatedRows] = await Category.update(
+    { name },
+    { where: { id } },
+  );
 
   if (updatedCount === 0) {
     return res.sendStatus(404);
   }
 
-  const updatedUser = await Category.findByPk(id);
+  const updatedCategory = updatedRows[0];
 
-  res.send(updatedUser);
+  res.send(updatedCategory);
 }
 
 module.exports = {

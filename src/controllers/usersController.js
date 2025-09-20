@@ -1,9 +1,15 @@
 const { User } = require('../models/User.model.js');
 
 async function getUsers(req, res) {
-  const users = await User.findAll();
+  try {
+    const users = await User.findAll();
 
-  res.status(200).send(users);
+    res.status(200).send(users);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(err);
+    res.sendStatus(500);
+  }
 }
 
 async function createUser(req, res) {
@@ -21,11 +27,12 @@ async function createUser(req, res) {
 async function getUserById(req, res) {
   const { id } = req.params;
   const numericId = Number(id);
-  const user = await User.findByPk(numericId);
 
   if (isNaN(numericId)) {
     return res.sendStatus(400);
   }
+
+  const user = await User.findByPk(numericId);
 
   if (!user) {
     res.sendStatus(404);
@@ -71,18 +78,16 @@ async function updateUser(req, res) {
     return res.sendStatus(400);
   }
 
-  const user = await User.update(
+  const [updatedCount, updatedRows] = await User.update(
     { name: name.trim() },
     { where: { id: numericId }, returning: true },
   );
 
-  if (!user) {
+  if (updatedCount === 0) {
     return res.sendStatus(404);
   }
 
-  const userUpdated = await User.findByPk(numericId);
-
-  res.send(userUpdated.dataValues);
+  res.send(updatedRows[0]);
 }
 
 module.exports = {

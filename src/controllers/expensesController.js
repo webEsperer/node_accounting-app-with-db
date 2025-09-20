@@ -1,7 +1,7 @@
-const { User } = require('../models/User.model.js');
 const { Expense } = require('../models/Expense.model.js');
 
 const { Op } = require('sequelize');
+const { User } = require('../models/User.model.js');
 
 async function getExpenses(req, res) {
   try {
@@ -54,26 +54,12 @@ async function createExpenses(req, res) {
   const { userId, spentAt, title, amount, category, note } = req.body;
 
   if (
-    userId === undefined ||
-    spentAt === undefined ||
-    title === undefined ||
-    amount === undefined
+    !Number.isFinite(Number(userId)) ||
+    !Number.isFinite(Number(amount)) ||
+    typeof title !== 'string' ||
+    !title.trim() ||
+    !spentAt
   ) {
-    res.sendStatus(400);
-
-    return;
-  }
-
-  const numericUserId = Number(userId);
-  const numericAmount = Number(amount);
-
-  if (isNaN(numericUserId) || isNaN(numericAmount)) {
-    return res.sendStatus(400);
-  }
-
-  const userExists = await User.findByPk(numericUserId);
-
-  if (!userExists) {
     return res.sendStatus(400);
   }
 
@@ -83,17 +69,31 @@ async function createExpenses(req, res) {
     return res.sendStatus(400);
   }
 
+  const numericUserId = Number(userId);
+  const user = await User.findByPk(numericUserId);
+
+  if (!user) {
+    return res.sendStatus(400);
+  }
+
   const newExpense = {
     userId: Number(userId),
     spentAt: date.toISOString(),
-    title,
+    title: title.trim(),
     amount: Number(amount),
-    category: category || null,
-    note: note || null,
   };
+
+  if (category) {
+    newExpense.category = category;
+  }
+
+  if (note) {
+    newExpense.note = note;
+  }
+
   const expense = await Expense.create(newExpense);
 
-  res.status(201).send(expense);
+  res.status(201).json(expense);
 }
 
 async function getExpensesById(req, res) {
@@ -105,7 +105,7 @@ async function getExpensesById(req, res) {
     return res.sendStatus(400);
   }
 
-  const expense = await Expense.findByPk(id);
+  const expense = await Expense.findByPk(numericId);
 
   if (!expense) {
     res.sendStatus(404);
@@ -125,7 +125,7 @@ async function deleteExpenses(req, res) {
     return res.sendStatus(400);
   }
 
-  const expense = await Expense.destroy({ where: { id } });
+  const expense = await Expense.destroy({ where: { id: numericId } });
 
   if (expense === 0) {
     res.sendStatus(404);
@@ -162,6 +162,12 @@ async function updateExpenses(req, res) {
       return res.sendStatus(400);
     }
 
+    const trimmedTitle = title.trim();
+
+    if (trimmedTitle.length === 0) {
+      return res.sendStatus(400);
+    }
+
     updateData.title = title.trim();
   }
 
@@ -187,7 +193,7 @@ async function updateExpenses(req, res) {
   }
 
   const [updatedCount, updatedRows] = await Expense.update(updateData, {
-    where: { id },
+    where: { id: numericId },
     returning: true,
   });
 
